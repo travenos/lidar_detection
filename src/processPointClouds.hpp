@@ -12,10 +12,10 @@
 #include <chrono>
 #include <cstddef>
 #include <ctime>
-#include <iostream> 
+#include <iostream>
 #include <functional>
 #include <random>
-#include <string>  
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -90,12 +90,8 @@ PointCloudPtrTemplate<PointT> ProcessPointClouds<PointT>::FilterCloud(const Poin
     cropBox.setMin(roofMin);
     cropBox.setMax(roofMax);
     cropBox.setInputCloud(cloudCropped);
-    cropBox.filter(filteredIndices.indices);
-    pcl::ExtractIndices<PointT> extract;
-    extract.setInputCloud(cloudCropped);
-    extract.setIndices(boost::shared_ptr<const pcl::PointIndices>(boost::shared_ptr<pcl::PointIndices>(), &filteredIndices));
-    extract.setNegative(true);
-    extract.filter(*cloudCropped);
+    cropBox.setNegative(true);
+    cropBox.filter(*cloudCropped);
 
     auto endTime = std::chrono::steady_clock::now();
     auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
