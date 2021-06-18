@@ -1,21 +1,23 @@
 #ifndef PROCESSPOINTCLOUDS_HPP_
 #define PROCESSPOINTCLOUDS_HPP_
 
-#include <pcl/io/pcd_io.h>
 #include <pcl/common/common.h>
+#include <pcl/common/transforms.h>
+#include <pcl/io/pcd_io.h>
+#include <pcl/filters/crop_box.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
-#include <pcl/filters/crop_box.h>
-#include <pcl/common/transforms.h>
-#include <iostream> 
-#include <string>  
-#include <vector>
-#include <ctime>
-#include <cstddef>
+
+#include <cassert>
 #include <chrono>
+#include <cstddef>
+#include <ctime>
+#include <iostream> 
 #include <functional>
 #include <random>
+#include <string>  
 #include <unordered_set>
+#include <vector>
 
 #include "render/box.h"
 #include "kdtree.h"
