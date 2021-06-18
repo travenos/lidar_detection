@@ -1,8 +1,6 @@
 #ifndef KDTREE_H_
 #define KDTREE_H_
 
-//#include "../../render/render.h" //TODO!!!
-#include <numeric>
 #include <vector>
 
 struct Node;
