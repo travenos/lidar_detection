@@ -26,7 +26,7 @@ private:
     Node& operator=(const Node&) = delete;
 };
 
-static void Insert(const std::vector<float>& point, int id, size_t k, Node*& node)
+static void Insert(const std::vector<float>& point, int id, std::size_t k, Node*& node)
 {
     if (node == nullptr)
     {
@@ -36,7 +36,7 @@ static void Insert(const std::vector<float>& point, int id, size_t k, Node*& nod
 
     assert(point.size() == node->point.size());
 
-    const size_t nextK = (k + 1) % point.size();
+    const std::size_t nextK = (k + 1) % point.size();
     if (point.at(k) < node->point.at(k))
     {
         ::Insert(point, id, nextK, node->left);
@@ -50,11 +50,11 @@ static void Insert(const std::vector<float>& point, int id, size_t k, Node*& nod
 static bool IsFittingTolerance(const std::vector<float>& target, const std::vector<float>& otherNode, float distanceTol)
 {
     assert(target.size() == otherNode.size());
-    const size_t N{target.size()};
+    const std::size_t N{target.size()};
 
     bool isNear{false};
     std::vector<float> diffs(N);
-    for (size_t i{0}; i < N; ++i)
+    for (std::size_t i{0}; i < N; ++i)
     {
         diffs[i] = std::fabs(target[i] - otherNode[i]);
         isNear |= (diffs[i] <= distanceTol);
@@ -68,7 +68,7 @@ static bool IsFittingTolerance(const std::vector<float>& target, const std::vect
     return isNear;
 }
 
-static void Search(const std::vector<float>& target, float distanceTol, size_t k, const Node* node, std::vector<int>& ids)
+static void Search(const std::vector<float>& target, float distanceTol, std::size_t k, const Node* node, std::vector<int>& ids)
 {
     if (node == nullptr)
     {
@@ -80,7 +80,7 @@ static void Search(const std::vector<float>& target, float distanceTol, size_t k
         ids.push_back(node->id);
     }
 
-    const size_t nextK = (k + 1) % target.size();
+    const std::size_t nextK = (k + 1) % target.size();
     if (target[k] - distanceTol < node->point[k])
     {
         ::Search(target, distanceTol, nextK, node->left, ids);

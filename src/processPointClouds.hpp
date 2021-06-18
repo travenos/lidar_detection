@@ -177,7 +177,7 @@ std::pair<PointCloudPtrTemplate<PointT>, PointCloudPtrTemplate<PointT>> ProcessP
 
         for (int j{0}; j < N; ++j)
         {
-            const auto& point = cloud->points[static_cast<size_t>(j)];
+            const auto& point = cloud->points[static_cast<std::size_t>(j)];
             const float pointDist = currentResult.plane.getDistanceToPoint(point);
             if (pointDist <= distanceTol)
             {
@@ -240,7 +240,7 @@ std::vector<PointCloudPtrTemplate<PointT>> ProcessPointClouds<PointT>::Clusterin
     KdTree tree{};
     for (int i{0}; i < N; ++i)
     {
-        const auto& point = cloud->points[static_cast<size_t>(i)];
+        const auto& point = cloud->points[static_cast<std::size_t>(i)];
         tree.Insert({point.x, point.y, point.z}, i);
     }
 
@@ -248,13 +248,13 @@ std::vector<PointCloudPtrTemplate<PointT>> ProcessPointClouds<PointT>::Clusterin
 
     std::function<void(int, std::vector<int>&)> proximityFunc = [&] (int pointId, std::vector<int>& cluster)
     {
-        const auto& point = cloud->points[static_cast<size_t>(pointId)];
-        processedPoints[static_cast<size_t>(pointId)] = true;
+        const auto& point = cloud->points[static_cast<std::size_t>(pointId)];
+        processedPoints[static_cast<std::size_t>(pointId)] = true;
         cluster.push_back(pointId);
         auto nearbyPoints = tree.Search({point.x, point.y, point.z}, clusterTolerance);
         for (int nearPointId: nearbyPoints)
         {
-            if (processedPoints[static_cast<size_t>(nearPointId)] == false)
+            if (processedPoints[static_cast<std::size_t>(nearPointId)] == false)
             {
                 proximityFunc(nearPointId, cluster);
             }
@@ -264,7 +264,7 @@ std::vector<PointCloudPtrTemplate<PointT>> ProcessPointClouds<PointT>::Clusterin
     std::vector<pcl::PointIndices> clustersIndices;
     for (int pointId{0}; pointId < N; ++pointId)
     {
-        if (processedPoints[static_cast<size_t>(pointId)] == false)
+        if (processedPoints[static_cast<std::size_t>(pointId)] == false)
         {
             std::vector<int> newCluster;
             proximityFunc(pointId, newCluster);

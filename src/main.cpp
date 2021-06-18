@@ -52,7 +52,7 @@ static void cityBlock(pcl::visualization::PCLVisualizer::Ptr& viewer, ProcessPoi
     static const int maxClusterSize{500};
     const auto cloudClusters = pointProcessorI.Clustering(segmentCloud.first, clusterTolerance, minClusterSize, maxClusterSize);
 
-    size_t clusterId = 0;
+    std::size_t clusterId = 0;
     static const std::vector<Color> colors = {Color{1,0,0}, Color{1,1,0}, Color{0,0,1}};
 
     for(const auto& cluster : cloudClusters)
