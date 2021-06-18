@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstddef>
 
 #include "processPointClouds.hpp"
 #include "render/render.h"

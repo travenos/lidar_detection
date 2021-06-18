@@ -1,6 +1,7 @@
 #include "kdtree.h"
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <numeric>
 
 // Structure to represent node of kd tree
