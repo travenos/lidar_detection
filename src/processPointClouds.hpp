@@ -265,7 +265,7 @@ void ProcessPointClouds<PointT>::FillKdTree(KdTree* tree, const PointCloudPtr& c
         std::transform(idPoints.begin(), idPoints.end(), pointPointers[i].begin(),
                        [](const Point& point){ return &point; });
         std::sort(pointPointers[i].begin(), pointPointers[i].end(),
-                  [i](const Point* point1, const Point* point2) {return (point1->point)[i] < (point2->point)[i];});
+                  [i](const Point* point1, const Point* point2) {return (point1->coord)[i] < (point2->coord)[i];});
         workingParts[i].reserve(maxLeafs);
         workingParts[i].emplace_back(pointPointers[i].begin(), pointPointers[i].end());
     }
