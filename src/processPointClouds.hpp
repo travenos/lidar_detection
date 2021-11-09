@@ -40,6 +40,8 @@ struct ProcessPointClouds
 
     static std::pair<PointCloudPtr, PointCloudPtr> SegmentPlane(const PointCloudPtr& cloud, int maxIterations, float distanceThreshold);
 
+    static void FillKdTree(KdTree* tree, const PointCloudPtr& cloud);
+
     static std::vector<PointCloudPtr> Clustering(const PointCloudPtr& cloud, float clusterTolerance, int minSize, int maxSize);
 
     static Box BoundingBox(const PointCloudPtr& cluster);
@@ -226,6 +228,169 @@ std::pair<PointCloudPtrTemplate<PointT>, PointCloudPtrTemplate<PointT>> ProcessP
     return segResult;
 }
 
+template<typename PointT>
+void ProcessPointClouds<PointT>::FillKdTree(KdTree* tree, const PointCloudPtr& cloud)
+{
+    struct Point
+    {
+        std::vector<float> coord;
+        int id;
+    };
+
+    constexpr size_t DIM{3};
+    assert(tree != nullptr);
+    assert(!cloud->points.empty());
+    const size_t N = cloud->points.size();
+    const size_t maxLeafs = static_cast<size_t>(std::log2(N) + 1);
+
+    std::vector<Point> idPoints(N);
+    int currentId{};
+    std::transform(cloud->points.begin(), cloud->points.end(), idPoints.begin(),
+                   [&currentId](const PointT& point)
+    {
+        return Point{{point.x, point.y, point.z}, currentId++};
+    });
+
+    std::vector<std::vector<const Point*>> pointPointers(DIM + 1);
+    for (auto& pointPointersDim : pointPointers)
+    {
+        pointPointersDim.resize(N);
+    }
+
+    using Iterator_t = typename std::vector<const Point*>::iterator;
+    using Difference_t = typename std::vector<const Point*>::difference_type;
+    std::vector<std::vector<std::pair<Iterator_t, Iterator_t>>> workingParts(DIM + 1);
+    for (size_t i{0}; i < pointPointers.size() - 1; ++i)
+    {
+        std::transform(idPoints.begin(), idPoints.end(), pointPointers[i].begin(),
+                       [](const Point& point){ return &point; });
+        std::sort(pointPointers[i].begin(), pointPointers[i].end(),
+                  [i](const Point* point1, const Point* point2) {return (point1->coord)[i] < (point2->coord)[i];});
+        workingParts[i].reserve(maxLeafs);
+        workingParts[i].emplace_back(pointPointers[i].begin(), pointPointers[i].end());
+    }
+    workingParts.back().reserve(maxLeafs);
+
+    std::vector<const Point*> lastElements;
+    lastElements.reserve(maxLeafs);
+
+    size_t currentDim{DIM - 1};
+    size_t nextDim{0};
+    while (true)
+    {
+        bool noPointsAdded{false};
+        if (!lastElements.empty())
+        {
+            noPointsAdded = true;
+            const auto lastDim = currentDim;
+            for (size_t checkingDim{0}; checkingDim < DIM; ++checkingDim)
+            {
+                if (checkingDim == lastDim)
+                {
+                    continue;
+                }
+                auto& tempPointPointers = pointPointers.back();
+                auto& tempWorkingParts = workingParts.back();
+                tempWorkingParts.clear();
+                for (size_t i{0}; i < lastElements.size(); ++i)
+                {
+                    const auto& lastWorkingPart = workingParts[lastDim][i];
+                    const Difference_t lastPartSizeMinus1 = lastWorkingPart.second - lastWorkingPart.first - 1;
+                    auto firstBegin = !tempWorkingParts.empty() ? tempWorkingParts.back().second : tempPointPointers.begin();
+                    auto firstEnd = firstBegin + std::max(static_cast<Difference_t>(0), lastPartSizeMinus1 / 2);
+                    auto secondBegin = firstEnd;
+                    auto secondEnd = secondBegin + std::max(static_cast<Difference_t>(0), lastPartSizeMinus1 - lastPartSizeMinus1 / 2);
+                    tempWorkingParts.emplace_back(firstBegin, firstEnd);
+                    tempWorkingParts.emplace_back(secondBegin, secondEnd);
+
+                    auto currentIterFirst = firstBegin;
+                    auto currentIterSecond = secondBegin;
+                    auto oldIter = workingParts[checkingDim][i].first;
+                    const Point* currentPoint = lastElements[i];
+                    if (currentPoint == nullptr)
+                    {
+                        continue;
+                    }
+                    const auto& currentCoord = currentPoint->coord;
+                    while (oldIter != workingParts[checkingDim][i].second)
+                    {
+                        const Point* oldPoint = *oldIter;
+                        if (oldPoint != currentPoint)
+                        {
+                            if((oldPoint->coord)[lastDim] <= currentCoord[lastDim])
+                            {
+                                *currentIterFirst = *oldIter;
+                                ++currentIterFirst;
+                            }
+                            else
+                            {
+                                *currentIterSecond = *oldIter;
+                                ++currentIterSecond;
+                            }
+                        }
+                        ++oldIter;
+                    }
+                    noPointsAdded &= (currentIterFirst == firstBegin && currentIterSecond == secondBegin);
+                }
+
+                std::swap(tempPointPointers, pointPointers[checkingDim]);
+                std::swap(tempWorkingParts, workingParts[checkingDim]);
+            }
+
+            // Split the last dim
+            {
+                auto& tempWorkingParts = workingParts.back();
+                tempWorkingParts.clear();
+
+                for (const auto& workingPart : workingParts[lastDim])
+                {
+                    const auto& begin = workingPart.first;
+                    const auto& end = workingPart.second;
+                    if (begin != end)
+                    {
+                        auto median = (begin + (end - begin - 1) / 2);
+                        tempWorkingParts.emplace_back(begin, median);
+                        tempWorkingParts.emplace_back(median + 1, end);
+                    }
+                    else
+                    {
+                        tempWorkingParts.emplace_back(begin, end);
+                    }
+                }
+                std::swap(tempWorkingParts, workingParts[lastDim]);
+
+            }
+        }
+        if (noPointsAdded)
+        {
+            break;
+        }
+
+        currentDim = nextDim;
+        nextDim = (nextDim + 1) % DIM;
+        lastElements.clear();
+
+        for (const auto& workingPart : workingParts[currentDim])
+        {
+            const auto& begin = workingPart.first;
+            const auto& end = workingPart.second;
+            if (begin != end)
+            {
+                auto median = (begin + (end - begin - 1) / 2);
+                const Point* const point = *median;
+                const auto& coordinates = point->coord;
+                lastElements.emplace_back(point);
+                tree->Insert(coordinates, point->id);
+            }
+            else
+            {
+                lastElements.emplace_back(nullptr);
+            }
+        }
+    }
+
+}
+
 // Euclidian clustering implementation
 template<typename PointT>
 std::vector<PointCloudPtrTemplate<PointT>> ProcessPointClouds<PointT>::Clustering(const PointCloudPtr& cloud, float clusterTolerance, int minSize, int maxSize)
@@ -236,11 +401,7 @@ std::vector<PointCloudPtrTemplate<PointT>> ProcessPointClouds<PointT>::Clusterin
 
     const int N{static_cast<int>(cloud->points.size())};
     KdTree tree{};
-    for (int i{0}; i < N; ++i)
-    {
-        const auto& point = cloud->points[static_cast<std::size_t>(i)];
-        tree.Insert({point.x, point.y, point.z}, i);
-    }
+    FillKdTree(&tree, cloud);
 
     std::vector<bool> processedPoints(N, false);
 
