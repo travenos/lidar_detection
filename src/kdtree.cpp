@@ -61,7 +61,7 @@ static bool IsFittingTolerance(const std::vector<float>& target, const std::vect
     }
     if (isNear)
     {
-        const float squareSum = std::accumulate(diffs.begin(), diffs.end(), 0, [](float a, float b) {return a + b * b;});
+        const float squareSum = std::accumulate(diffs.begin(), diffs.end(), 0.f, [](float a, float b) {return a + b * b;});
         const float squareTol = distanceTol * distanceTol;
         isNear = (squareSum <= squareTol);
     }
